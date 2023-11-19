@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule name="caculateRoles" type="BuildMap">
+    <Description>This basic rule performs the combines 2 values into a single attribute.</Description>
+    <Signature returnType='Object'>
+    <Inputs>
+    <Argument name='cols' type='java.util.List'>
+        <Description>
+            The columns of the delimited file.
+        </Description>
+    </Argument>
+        <Argument name='record' type='java.util.List'>
+            <Description>
+                A single record of the delimited file.
+            </Description>
+        </Argument>
+    </Inputs>
+    </Signature>
+    <Source><![CDATA[
+     import sailpoint.connector.DelimitedFileConnector;
+     import java.text.DateFormat;
+     import java.text.SimpleDateFormat;
+     import java.util.Date;
+     import java.util.Map;
+     import sailpoint.rule.Account;
+
+     Map map = DelimitedFileConnector.defaultBuildMap( cols, record );
+    //read startDate as formart mm/dd/yyyy
+    String startDate = (String) map.get( "startDate" );
+    String endDate = (String) map.get( "endDate" );
+    // read roleName
+    String roleName = (String) map.get( "roleName" );
+
+    // read the department and ward
+    String department = (String) map.get( "department" );
+    String ward = (String) map.get( "ward" );
+
+    if ( startDate != null && endDate != null ) {
+        //check if startDate is before today and endDate is after today
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        Date today = new Date();
+        Date start = sdf.parse(startDate);
+        Date end = sdf.parse(endDate);
+        //log the dates
+        log.error("start: " + start);
+        log.error("end: " + end);
+        if ( start.before(today) && end.after(today) ) {
+            if ( department != null && ward != null ) {
+                String combined = department + "-" + ward;
+                log.error("combined: " + combined);
+
+                //search a particular source to find the rolename
+                Account acct = idn.getFirstAccount("Rostering CSV [source]",combined);
+                if (acct != null)
+                {
+                    Map attributes = acct.getAttributes();
+                    String NewroleName = (String) attributes.get("roleName");
+                    log.error("NewroleName: " + NewroleName);
+
+                    //update the roleName 
+                    map.put("roleName", NewroleName);
+                }
+            }
+        } 
+    }
+     return map;
+  ]]></Source>
+</Rule>

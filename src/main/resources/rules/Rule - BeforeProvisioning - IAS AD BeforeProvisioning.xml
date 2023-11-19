@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="IAS AD BeforeProvisioning" type="BeforeProvisioning">
+  <Description>
+  	AD BeforeProvisioning, Move to Disable OU if the user is inactive based on employeeType
+  </Description>
+  <Source><![CDATA[
+import sailpoint.object.ProvisioningPlan;
+import sailpoint.object.ProvisioningPlan.AccountRequest;
+import sailpoint.object.ProvisioningPlan.AttributeRequest;
+import sailpoint.object.Application;
+import sailpoint.object.Identity;
+import sailpoint.idn.IdnRuleUtil;
+import java.util.List;
+
+
+String lcsADAtrributeName = "description";
+// GetDisabledOU and enabledOU
+String AD_SOURCE_ID = application.getId();
+String AD_DISABLE_USER_OU = null;
+String AD_Enable_USER_OU = null;
+if ("dde2a767b26d4580b69627abd8104cfd".equalsIgnoreCase(AD_SOURCE_ID)) {
+    AD_DISABLE_USER_OU = "OU=Staff,DC=stgias,DC=tafeqld,DC=edu,DC=au";
+    AD_Enable_USER_OU = "OU=Inactive,OU=Staff,DC=stgias,DC=tafeqld,DC=edu,DC=au";
+} else if ("6619e2ce285b496fa09cab9db2e827e8".equalsIgnoreCase(AD_SOURCE_ID)) {
+    AD_DISABLE_USER_OU = "OU=Staff,DC=stgias,DC=tafeqld,DC=edu,DC=au";
+    AD_Enable_USER_OU = "OU=Inactive,OU=Staff,DC=stgias,DC=tafeqld,DC=edu,DC=au";
+}
+
+if (plan != null) {
+    List accountRequests = plan.getAccountRequests();
+    Identity identity = plan.getIdentity();
+    if (accountRequests != null && identity != null) {
+        for (AccountRequest accountRequest : accountRequests) {
+            String nativeIdentity = accountRequest.getNativeIdentity();
+            AccountRequest.Operation op = accountRequest.getOperation();
+            if (op != null && op == AccountRequest.Operation.Modify) {
+                AttributeRequest dAttrReqs = accountRequest.getAttributeRequest(lcsADAtrributeName);
+                String adLcsStatus = (dAttrReqs != null && dAttrReqs.getValue() != null) ? (String) dAttrReqs.getValue() : null;
+                log.error("BP Lifecycle Change" + nativeIdentity + " " + adLcsStatus);
+                // move when it is Not in already disabledOU
+                if (adLcsStatus != null && adLcsStatus.equalsIgnoreCase("inactive") && !nativeIdentity.contains(AD_DISABLE_USER_OU)) {
+                    // move to disable OU based on the employeeType
+                    String[] ouParts = nativeIdentity.split(",");
+                    String newOU = ouParts[1] + "," + AD_DISABLE_USER_OU;
+                    log.error("BP Lifecycle Change, Move to" + newOU);
+                    accountRequest.add(new AttributeRequest("AC_NewParent", ProvisioningPlan.Operation.Set, newOU));
+                } else if (adLcsStatus != null && adLcsStatus.equalsIgnoreCase("active") && nativeIdentity.contains(AD_DISABLE_USER_OU)) {
+                    // move to enable OU based on the employeeType
+                    String[] ouParts = nativeIdentity.split(",");
+                    String newOU = ouParts[1] + "," + AD_Enable_USER_OU;
+                    log.error("BP Lifecycle Change, Move to" + newOU);
+                    accountRequest.add(new AttributeRequest("AC_NewParent", ProvisioningPlan.Operation.Set, newOU));
+                }
+            }
+        }
+    }
+}
+
+  ]]></Source>
+</Rule>

@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule name="BSC-ServiceNow" type="BeforeProvisioning">
+  <Source><![CDATA[  
+    import sailpoint.object.ProvisioningPlan;
+    import sailpoint.object.ProvisioningPlan.AccountRequest;
+    import sailpoint.object.ProvisioningPlan.AttributeRequest;
+    import sailpoint.object.ProvisioningPlan.Operation;
+    import sailpoint.object.Identity;
+    import sailpoint.tools.Util;
+    import sailpoint.tools.GeneralException; 
+
+    log.debug("entering BSC-ServiceNow BeforeProvisioningRule");
+
+    public AttributeRequest newAttributeRequest(String attributeName, Object attributeValue) 
+    {
+        log.error("newAttributeRequest: " + attributeName + " " + attributeValue);
+	    AttributeRequest attributeRequest = new ProvisioningPlan.AttributeRequest();
+	    attributeRequest.setName(attributeName);
+	    attributeRequest.setOperation(ProvisioningPlan.Operation.Set);
+	    attributeRequest.setValue(attributeValue);
+	    return attributeRequest;
+    }
+
+    List accountRequests = plan.getAccountRequests();
+    log.error("accountRequests: " + accountRequests.size());
+
+    if (accountRequests != null && !accountRequests.isEmpty()) {
+        for (AccountRequest accountRequest: accountRequests) {
+            if (accountRequest != null && accountRequest.getApplicationName() != null) {
+                
+                AccountRequest.Operation op = accountRequest.getOperation();
+                Identity identity = plan.getIdentity();
+                String cloudLifecycleState = identity.getAttribute("cloudLifecycleState");
+                log.error("cloudLifecycleState: " + cloudLifecycleState);
+                log.error("op: " + op);
+
+                    if( op.equals(AccountRequest.Operation.Create) || op.equals(AccountRequest.Operation.Modify) ){
+                        if(accountRequest.getAttributeRequests() != null){
+                            
+                            for(AttributeRequest attributeRequest : accountRequest.getAttributeRequests()){
+                                log.error("attributeRequest.getName(): " + attributeRequest.getName());
+                                log.error("attributeRequest.getValue(): " + attributeRequest.getValue());
+                                if ( attributeRequest.getName() != null && attributeRequest.getName().equals("company.u_beeline_supplier_code") ) {
+                                    accountRequest.add(newAttributeRequest("company", attributeRequest.getValue()));
+                                }
+                                if ( attributeRequest.getName() != null && attributeRequest.getName().equals("location.u_code") ) {
+                                    accountRequest.add(newAttributeRequest("location", attributeRequest.getValue()));
+                                }
+                            }
+                            accountRequest.remove(accountRequest.getAttributeRequest("company.u_beeline_supplier_code"));
+                            accountRequest.remove(accountRequest.getAttributeRequest("location.u_code"));
+                        }
+                    }
+
+                    //log attribute request size
+                    log.error("accountRequest.getAttributeRequests().size(): " + accountRequest.getAttributeRequests().size());
+
+                    //Do the plan modifications only for prehire or active lifecycle state events               
+                    if (
+                        ("Prehire".equalsIgnoreCase(cloudLifecycleState) || "Active".equalsIgnoreCase(cloudLifecycleState)) && 
+                        (op.equals(AccountRequest.Operation.Create) || op.equals(AccountRequest.Operation.Modify))
+                    ) {
+                        AttributeRequest entitlementAttribute = accountRequest.getAttributeRequest("groups");
+                        if(null != entitlementAttribute) {
+                            List groups = Util.asList(entitlementAttribute.getValue());
+                            if(groups.size() == 1 && "0064a594db707f44a3389c0adb9619b4".equalsIgnoreCase(groups.get(0))) {
+                                accountRequest.remove(entitlementAttribute);
+                                log.debug("Removed entitlement 'groups'");
+                            }
+                        }
+                    }
+                
+            }
+        }
+    }
+    
+    log.debug("exiting BSC-ServiceNow BeforeProvisioningRule");
+  ]]></Source>
+</Rule>

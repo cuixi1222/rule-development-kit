@@ -16,7 +16,6 @@ public class UsernameGenerator {
 
     int MAX_USERNAME_LENGTH = 12;
 
-
     public String generateUsername(String firstName, String lastName) throws GeneralException {
         firstName = StringUtils.trimToNull(firstName);
         lastName = StringUtils.trimToNull(lastName);
@@ -89,9 +88,6 @@ public class UsernameGenerator {
                 }
             }
         }
-
-
-
         return null;
     }
 

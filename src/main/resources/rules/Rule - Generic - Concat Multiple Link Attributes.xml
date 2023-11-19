@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule name="Concat Multiple Link Attributes">
+	<Signature returnType="Object">
+		<Inputs>
+			<Argument name="identity" type="sailpoint.object.Identity"/>
+			<Argument name="sourceName" type="String"/>
+			<Argument name="attributeName" type="String"/>
+		</Inputs>
+	</Signature>
+    <Description/>
+    <Source><![CDATA[
+		import java.util.*;
+		import java.object.*;
+		import sailpoint.object.Link;
+		import org.apache.commons.lang3.StringUtils;
+
+		String logPrefix = "Health NZ Concat Multiple Link Attributes - [" + identity.getName() + "] ";
+		
+		String ATTRIBUTE_VALUE_DELIMITER = ";";
+		String sourceName = StringUtils.trimToNull(sourceName);
+		String attributeName = StringUtils.trimToNull(attributeName);
+
+		log.error(logPrefix + "sourceName: " + sourceName);
+		log.error(logPrefix + "attributeName: " + attributeName);
+
+		List links = identity.getLinks();
+		HashSet sourceAttributeValues = new HashSet();
+
+		if (links != null && sourceName != null && attributeName != null) {
+			for (Link l : links) {
+				if (l != null && l.getApplicationName() != null && l.getApplicationName().startsWith(sourceName)) {
+					if (l.getAttribute(attributeName) != null) {
+						sourceAttributeValues.add(l.getAttribute(attributeName));
+					}
+				}
+			}
+		}
+
+		log.error(logPrefix + "sourceAttributeValues: " + sourceAttributeValues);
+		
+		String finalSourceAttributeValues = null;
+		if (sourceAttributeValues.size() > 0) {
+			int i = 0;
+			for (Object savObj : sourceAttributeValues) {
+				if (i == 0) {
+					finalSourceAttributeValues = (String) savObj;
+				}
+				else {
+					finalSourceAttributeValues += ATTRIBUTE_VALUE_DELIMITER + (String) savObj;
+				}
+				i++;
+			}
+		}
+		
+		log.error(logPrefix + "final finalSourceAttributeValues: " + finalSourceAttributeValues);
+		
+		return finalSourceAttributeValues;
+
+    ]]></Source>
+</Rule>

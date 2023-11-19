@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="PRD AD BeforeProvisioning" type="BeforeProvisioning">
+  <Description>
+  	AD BeforeProvisioning, Move to Disable OU if the user is inactive
+  </Description>
+  <Source><![CDATA[
+import org.apache.commons.lang.StringUtils;
+import sailpoint.object.ProvisioningPlan;
+import sailpoint.object.ProvisioningPlan.AccountRequest;
+import sailpoint.object.ProvisioningPlan.AttributeRequest;
+import sailpoint.object.Application;
+import sailpoint.object.Identity;
+import sailpoint.idn.IdnRuleUtil;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+
+String lcsAttributeName = "cloudLifecycleState";
+// GetDisabledOU and EnableOU
+String AD_SOURCE_ID = application.getId();
+String AD_DISABLE_USER_OU = null;
+String AD_Enable_USER_OU = null;
+if ("03cacf1851c649a1ae617c75f69fead9".equalsIgnoreCase(AD_SOURCE_ID)) {
+    AD_DISABLE_USER_OU = "OU=Users (CORP),OU=Staff,DC=stgprd,DC=tafeqld,DC=edu,DC=au";
+    AD_Enable_USER_OU = "OU=Users,OU=Staff,OU=Inactive,DC=stgprd,DC=tafeqld,DC=edu,DC=au";
+} else if ("6619e2ce285b496fa09cab9db2e827e8".equalsIgnoreCase(AD_SOURCE_ID)) {
+    AD_DISABLE_USER_OU = "OU=Users (CORP),OU=Staff,DC=stgprd,DC=tafeqld,DC=edu,DC=au";
+    AD_Enable_USER_OU = "OU=Users,OU=Staff,OU=Inactive,DC=stgprd,DC=tafeqld,DC=edu,DC=au";
+} 
+
+if (plan != null) {
+    List accountRequests = plan.getAccountRequests();
+    Identity identity = plan.getIdentity();
+    if (accountRequests != null && identity != null) {
+        for (AccountRequest accountRequest : accountRequests) {
+            String nativeIdentity = accountRequest.getNativeIdentity();
+            String lcs = StringUtils.trimToNull(identity.getStringAttribute(lcsAttributeName));
+            AccountRequest.Operation op = accountRequest.getOperation();
+            if (op != null && op == AccountRequest.Operation.Disable && lcs != null && lcs.equalsIgnoreCase("inactive")) {
+                if (!nativeIdentity.contains(AD_DISABLE_USER_OU)) {
+                    accountRequest.add(new AttributeRequest("AC_NewParent", ProvisioningPlan.Operation.Set, AD_DISABLE_USER_OU));
+                }
+            } else if (op != null && op == AccountRequest.Operation.Enable && lcs != null && lcs.equalsIgnoreCase("active")) {
+                if (nativeIdentity.contains(AD_DISABLE_USER_OU)) {
+                    accountRequest.add(new AttributeRequest("AC_NewParent", ProvisioningPlan.Operation.Set, AD_Enable_USER_OU));
+                }
+            }
+        }
+    }
+}
+
+  ]]></Source>
+</Rule>

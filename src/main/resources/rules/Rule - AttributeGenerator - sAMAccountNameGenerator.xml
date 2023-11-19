@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule name="sAMAccountNameGenerator" type="AttributeGenerator">
+    <Description>Generate a unique username for Active Directory.</Description>
+    <Source><![CDATA[
+
+    import sailpoint.tools.GeneralException;
+    import sailpoint.object.*;
+    import java.util.ArrayList;
+    import sailpoint.api.*;
+    import java.util.List;
+    import org.apache.commons.lang.StringUtils;
+    import java.text.Normalizer;
+
+    int maxIteration = 99;
+
+     // function to generate sAMAccountName, check if it is unique and return the value
+    public String generateUsername(String firstpart, String secondpart, int iteration) throws Exception{
+
+        String username ;
+        // construct username by adding firstpart and secondpart and iteration number
+        if(iteration > 0){
+            username = firstpart + secondpart + String.valueOf(iteration);
+        }else{
+            username =  firstpart + secondpart;
+        }
+
+        // check if username is unique, if yes return it, if not add iteration number to it
+        if(isUnique(username)){
+            return username;
+        } else if(iteration < maxIteration){
+            return generateUsername(firstpart, secondpart, (iteration + 1));
+        }else{
+            return null;
+        }
+    }
+
+    public String sAMAccountNameGenerator() throws Exception{
+
+        String sAMAccountName = null;
+    
+        String firstName = StringUtils.trimToNull(identity.getStringAttribute("firstname"));
+        String lastName = StringUtils.trimToNull(identity.getStringAttribute("lastname"));
+        String employeeType = StringUtils.trimToNull(identity.getStringAttribute("employeeType"));
+        String firstNameInitial = null;
+
+        log.error("sAMAccountName Generation : " + firstName + " " + lastName + " " + employeeType);
+
+        //make sure all firstname and lastname and employeeType are not null
+        if (firstName !=null && lastName != null && employeeType != null) {
+            if (employeeType.contains("CORP") || employeeType.contains("APTC")) {
+                //it is a corp user [initial firstname][Lastname][uniqueNumber]
+                firstNameInitial = firstName.replaceAll("[^a-zA-Z0-9]", "").toUpperCase().substring(0,1);
+                sAMAccountName = generateUsername(firstNameInitial, lastName, 0);
+            }else{
+                // it is a regional user [first 7 letter of surname][initial firstname][uniqueNumber]
+                lastName = lastName.replaceAll("[^a-zA-Z0-9]", "");
+                if (lastName.length() > 7) {
+                lastName = lastName.substring(0, 7);
+                }
+                firstNameInitial = firstName.replaceAll("[^a-zA-Z0-9]", "").toUpperCase().substring(0,1);
+                sAMAccountName = generateUsername(lastName, firstNameInitial, 0);
+            }
+            }
+
+         log.error("sAMAccountName Generation Completed : " + sAMAccountName);
+        return sAMAccountName;
+    }
+
+    public boolean isUnique(String username) throws GeneralException {
+        return !idn.accountExistsByDisplayName(application.getName(), username);
+    }
+
+    return sAMAccountNameGenerator();
+
+  ]]></Source>
+</Rule>

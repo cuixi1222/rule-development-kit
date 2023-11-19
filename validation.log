@@ -1,0 +1,34 @@
+________________________________________________________________________________
+SailPoint SaaS Rule Validator v3.0.28
+By the SaaS Acceleration Team
+
+(c)2022-23 SailPoint Technologies Inc
+
+Command line arguments:
+   --file {-f} = "C:\Coding\rule-development-kit\src\main\resources\rules\Rule - WebServiceAfterOperationRule - NERMAfter.xml"
+
+Executed from: C:\Coding\rule-development-kit
+Jar location : C:\Tools\sailpoint-saas-rule-validator-3.0.28
+________________________________________________________________________________
+File name    : C:\Coding\rule-development-kit\src\main\resources\rules\Rule - WebServiceAfterOperationRule - NERMAfter.xml
+Rule name    : NERMAfter
+Process date : Thu Nov 09 10:01:21 AEDT 2023
+
+________________________________________________________________________________
+Errors: (2)
+
+  [RegExRuleValidator(628)] This is a connector-executed rule. It should be deployed to the tenant via API instead of submitted for SailPoint code review 
+  Line 17 - [LintProcessor(0)] Could not parse line, check to ensure line is syntatically correct. Error: Encountered "=" at line 17, column 25.  Error occured between lines 16 and 17 
+
+________________________________________________________________________________
+  Runtime stats:
+    Started validation at Thu Nov 09 10:01:21 AEDT 2023
+    1 Rules Analyzed
+    2 Errors
+    0 Warnings
+
+    Finished validation at:  Thu Nov 09 10:01:21 AEDT 2023
+    Process completed in 1 second.
+________________________________________________________________________________
+Validation status: FAILURE
+________________________________________________________________________________

@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule name="NERMAfter" type="WebServiceAfterOperationRule">
+  <Description>This rule is used by the  Web Services connector after performing any operation like testconnection, aggregation etc.</Description>
+  <Source><![CDATA[
+import connector.common.JsonUtil;
+import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import javax.net.ssl.HttpsURLConnection;
+import java.io.BufferedReader;
+import java.io.PrintStream;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import sailpoint.tools.GeneralException;
+
+Map updatedMapInfo = new HashMap();
+List list = new ArrayList();
+Map response = (Map) JsonUtil.toMap(rawResponseObject);
+String startdate=null;
+String enddate=null;
+List Finallist = new ArrayList();
+
+log.error("NERM RULES response at start" + response);
+if (response.get("profiles") != null) {
+
+    list = (ArrayList) response.get("profiles");
+    
+    for (int d = 0; d < list.size(); d++) {
+        Map responseMap = list.get(d);
+        //add start date and end date to the response
+
+        if (responseMap.get("attributes") != null) {
+            
+            Map data = responseMap.get("attributes");
+            
+            // check if the data is null or not
+            if (data.get("start_date") != null && data.get("end_date") != null) {                
+                if (d == 0) {
+                    startdate = data.get("start_date").toString();
+                    enddate = data.get("end_date").toString();
+                } else {
+                    if (startdate.compareTo(data.get("start_date").toString()) > 0) {
+                        startdate = data.get("start_date").toString();
+                    }
+                    if (enddate.compareTo(data.get("end_date").toString()) < 0) {
+                        enddate = data.get("end_date").toString();
+                    }
+                }
+            }         
+        }
+    }
+
+    Map newmap = new HashMap();
+    newmap.put("start_date", startdate);
+    newmap.put("end_date", enddate);
+
+    Finallist.add(newmap);
+    // add previous response to the new response
+    
+}
+
+for (int i = 0; i < processedResponseObject.size(); i++) {
+    Finallist.add(processedResponseObject.get(i));
+}
+
+log.error("NERM RULES newmap at end" + newmap);
+log.error("NERM RULES Finallist at end" + Finallist);
+
+log.error("NERM RULES processedResponseObject Before is " + processedResponseObject);
+
+updatedMapInfo.put("data", Finallist);
+log.error("NERM RULES updatedMapInfo is " + updatedMapInfo);
+
+return updatedMapInfo;
+
+  ]]></Source>
+</Rule>
